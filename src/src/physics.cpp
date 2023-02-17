@@ -40,7 +40,7 @@ std::pair<int, int> PhysicsBody::ProjectToAxis(Vector2f &axis) const
     return std::make_pair(min, max);
 }
 
-void PhysicsBody::calculateMassCenter()
+void PhysicsBody::calculateMassCenter_andBoundingBox()
 {
     center = Vector2f(0.f, 0.f);
     mass = 0.f;
@@ -78,65 +78,35 @@ int Solver::sgn(T x)
 
 void Solver::updateVerlet(float dt)
 {
-    for(auto& b : m_bodies)
-    {
-        for(auto& v : b.vertexes)
-        {
-            Vector2f temp = v.position;
-            v.position += v.position - v.prev_position + v.acceleration * dt * dt;
-            v.prev_position = temp;
-        }
-    }
-
-    for(auto& v : m_vertexes)
+    for(Vertex* v : m_vertexes)
     {
         // Verlet integration
-        Vector2f temp = v.position;
-        v.position += v.position - v.prev_position + v.acceleration * dt * dt;
-        v.prev_position = temp;
+        Vector2f temp = v->position;
+        v->position += v->position - v->prev_position + v->acceleration * dt * dt;
+        v->prev_position = temp;
     }
 
 }
 
 void Solver::updateEdges()
 {
-    for(auto& b : m_bodies)
+    for(Edge* edge : m_edges)
     {
-        for(auto& edge : b.edges)
-        {
-            Vector2f v1v2 = edge.v2->position - edge.v1->position;
-            float diff = v1v2.length() - edge.length;
-            v1v2 = v1v2.normalized();
-
-            // push vertices apart by half of diff
-            edge.v1->position += v1v2 * diff * 0.5f;
-            edge.v2->position -= v1v2 * diff * 0.5f;
-        }
-    }
-    for(auto& edge : m_edges)
-    {
-        Vector2f v1v2 = edge.v2->position - edge.v1->position;
-        float diff = v1v2.length() - edge.length;
+        Vector2f v1v2 = edge->v2->position - edge->v1->position;
+        float diff = v1v2.length() - edge->length;
         v1v2 = v1v2.normalized();
 
         // push vertices apart by half of diff
-        edge.v1->position += v1v2 * diff * 0.5f;
-        edge.v2->position -= v1v2 * diff * 0.5f;
+        edge->v1->position += v1v2 * diff * 0.5f;
+        edge->v2->position -= v1v2 * diff * 0.5f;
     }
 }
 
 void Solver::applyForces()
 {
-    for(auto& b : m_bodies)
+    for(Vertex* v : m_vertexes)
     {
-        for(auto& v : b.vertexes)
-        {
-            v.acceleration = m_gravity;
-        }
-    }
-    for(auto& v : m_vertexes)
-    {
-        v.acceleration = m_gravity;
+        v->acceleration = m_gravity;
     }
 }
 
@@ -230,24 +200,16 @@ void Solver::iterateCollisions()
 {
     //A small 'hack' that keeps the vertices inside the screen. You could of course implement static objects and create
     //four to serve as screen boundaries, but the max/min method is faster
-    for(auto& v : m_vertexes) {
-        v.position.x = std::max( std::min( v.position.x, (float)GWidth  ), 0.0f );
-        v.position.y = std::max( std::min( v.position.y, (float)GHeight ), 0.0f );
-    }
-
-    for(auto& b : m_bodies)
-    {
-        for(auto& v : b.vertexes) {
-            v.position.x = std::max( std::min( v.position.x, (float)GWidth  ), 0.0f );
-            v.position.y = std::max( std::min( v.position.y, (float)GHeight ), 0.0f );
-        }
+    for(Vertex* v : m_vertexes) {
+        v->position.x = std::max( std::min( v->position.x, (float)GWidth  ), 0.0f );
+        v->position.y = std::max( std::min( v->position.y, (float)GHeight ), 0.0f );
     }
 
     updateEdges();
 
     for(auto& body : m_bodies)
     {
-        body.calculateMassCenter();
+        body.calculateMassCenter_andBoundingBox();
     }
 
     for(auto& b1 : m_bodies)
@@ -267,17 +229,19 @@ void Solver::iterateCollisions()
 
 void Solver::update(float dt)
 {
+    
     float sub_dt = dt / m_iterations;
-    applyForces();
     for(size_t i = 0; i < m_iterations; i++)
     {
+        applyForces();
         updateVerlet(sub_dt);
         iterateCollisions();
     }
 }
 
 Solver::Solver()
-    : m_gravity{0.f, 100.f}
+    : m_gravity{0.f, 1000.f},
+      m_iterations{4}
 {
 }
 
@@ -306,19 +270,26 @@ void Solver::addRectangle(float w, float h, float x, float y)
     body->edges.push_back(Edge(v4, v1, v4->distance(v1), body));
     body->edges.push_back(Edge(v1, v3, v1->distance(v3), body));
     body->edges.push_back(Edge(v2, v4, v2->distance(v4), body));
+
+    for(size_t i = 4; i >= 1; i--)
+    {
+        m_vertexes.push_back(&body->vertexes[s - i]);    
+    }
+
+    s = body->edges.size();
+    for(size_t i = 6; i >= 1; i--)
+    {
+        m_edges.push_back(&body->edges[s - i]);
+    }
+    
 }
 
-std::vector<Vertex>& Solver::getVertexes()
+std::vector<Vertex*> &Solver::getVertexes()
 {
     return m_vertexes;
 }
 
-std::vector<Edge> &Solver::getEdges()
+std::vector<Edge*> &Solver::getEdges()
 {
     return m_edges;
-}
-
-std::vector<PhysicsBody> &Solver::getBodies()
-{
-    return m_bodies;
 }

@@ -18,41 +18,8 @@ int main() {
     sf::CircleShape shape(100.f);
     shape.setFillColor(sf::Color::Green);
 
-    // std::vector<int> v = {3, 6, 3, 5, 6};
-    // auto p = [&](){ for(auto i : v) std::cout << i << " "; std::cout << std::endl; };
-    // std::vector<int>::pointer pn = &v[2];
-    // p();
-    // cout << *pn << endl;
-    // std::sort(v.begin(), v.end());
-    // p();
-    // cout << *pn << endl;
-
-    // int a = 5;
-    // int& p = a;
-    // int* pp = &p;
-    // std::cout << *pp << endl;
-    // *pp = 10;
-    // cout << a << endl;
-
     Solver solver;
-    //solver.addRectangle(100.f, 100.f, 100.f, 100.f);
-    solver.addRectangle(100.f, 100.f, 120.f, 100.f); 
-    solver.addRectangle(100.f, 100.f, 100.f, 300.f); 
-
-    const auto& vert = solver.getVertexes();
-    for(const auto& v : vert)
-    {
-        std::cout << v.position.x << " " << v.position.y << endl;
-    }
-    cout << endl;
-
-    const auto& edg = solver.getEdges();
-    for(const auto& e : edg)
-    {
-        std::cout << e.v1->position.x << " " << e.v1->position.y << endl;
-        std::cout << e.v2->position.x << " " << e.v2->position.y << endl;
-        cout << "--" << endl;
-    }
+    solver.addRectangle(window.getSize().x, window.getSize().y / 4, 0, window.getSize().y * 3 / 4);
 
     Renderer renderer(&window);
 
@@ -66,12 +33,11 @@ int main() {
             if (event.type == sf::Event::Closed || (event.key.code == sf::Keyboard::Q && event.key.control)) {
                 window.close();
             }
-            // if(event.MouseButtonPressed && event.mouseButton.button == sf::Mouse::Button::Left)
-            // {
-            //     sf::Vector2f mouse_pos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-            //     cout << mouse_pos.x << " " << mouse_pos.y << endl;
-            //     solver.addRectangle(100.f, 100.f, mouse_pos.x, mouse_pos.y); 
-            // }
+            if(event.type == event.MouseButtonPressed && event.mouseButton.button == sf::Mouse::Button::Left)
+            {
+                sf::Vector2f mouse_pos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+                solver.addRectangle(100.f, 100.f, mouse_pos.x, mouse_pos.y); 
+            }
         }
 
         ImGui::SFML::Update(window, deltaClock.restart());

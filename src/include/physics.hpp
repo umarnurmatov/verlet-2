@@ -39,17 +39,17 @@ struct PhysicsBody
     std::vector<Edge> edges;
 
     std::pair<int, int> ProjectToAxis(Vector2f &axis) const;
-    void calculateMassCenter();
+    void calculateMassCenter_andBoundingBox();
 
     bool operator==(PhysicsBody &b);
 };
 
 class Solver
 {
-    std::vector<Vertex> m_vertexes;
-    std::vector<Edge> m_edges;
+    std::vector<Vertex*> m_vertexes;
+    std::vector<Edge*> m_edges;
     std::vector<PhysicsBody> m_bodies;
-    size_t m_iterations = 8;
+    size_t m_iterations;
     Vector2f m_gravity;
 
     // TODO fix this
@@ -80,9 +80,8 @@ public:
     Solver();
     void update(float dt);
     void addRectangle(float w, float h, float x, float y);
-    std::vector<Vertex>& getVertexes();
-    std::vector<Edge>& getEdges();
-    std::vector<PhysicsBody>& getBodies();
+    std::vector<Vertex*>& getVertexes();
+    std::vector<Edge*>& getEdges();
 };
 
 
