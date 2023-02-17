@@ -19,7 +19,8 @@ int main() {
     shape.setFillColor(sf::Color::Green);
 
     Solver solver;
-    solver.addRectangle(window.getSize().x, window.getSize().y / 4, 0, window.getSize().y * 3 / 4);
+    //solver.addRectangle(window.getSize().x, window.getSize().y / 4, 0, window.getSize().y * 3 / 4);
+
 
     Renderer renderer(&window);
 
