@@ -2,6 +2,7 @@
 //https://github.com/rraallvv/VerletTutorial/
 #pragma once
 #include <SFML/System.hpp>
+#include <SFML/Graphics/Rect.hpp>
 #include <vector>
 using sf::Vector2f;
 
@@ -34,6 +35,7 @@ struct PhysicsBody
 {
     Vector2f center; // center of mass
     float mass;
+    sf::FloatRect boundBox;
 
     std::vector<Vertex> vertexes;
     std::vector<Edge> edges;

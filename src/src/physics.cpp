@@ -44,11 +44,23 @@ void PhysicsBody::calculateMassCenter_andBoundingBox()
 {
     center = Vector2f(0.f, 0.f);
     mass = 0.f;
+
+    Vector2f min, max;
+
     for(auto& v : vertexes)
     {
+        min.x = std::min(min.x, v.position.x);
+        min.y = std::min(min.y, v.position.y);
+        max.x = std::max(max.x, v.position.x);
+        max.y = std::max(max.y, v.position.y);
+        
+
         center += v.position * v.mass;
         mass += v.mass;
     }
+
+    boundBox = sf::FloatRect(min, max - min);
+
     center /= mass;
 }
 
@@ -131,7 +143,7 @@ bool Solver::detectCollision(PhysicsBody &b1, PhysicsBody &b2)
         auto [minB, maxB] = b2.ProjectToAxis(axis);
 
         float distance = intervalDistance(minA, maxA, minB, maxB);
-        std::cout << "dist " << distance << std::endl;
+
         if(distance > 0.f)  // no collision
             return false;
 
@@ -217,12 +229,10 @@ void Solver::iterateCollisions()
         for(auto& b2 : m_bodies)
         {
             if(b1 != b2)
-            {
-                if(detectCollision(b1, b2))
-                {
-                    resolveCollision();
-                }
-            }
+                if(b1.boundBox.findIntersection(b2.boundBox) != std::nullopt)
+                    if(detectCollision(b1, b2))
+                        resolveCollision();
+                    
         }
     }
 }
@@ -240,8 +250,8 @@ void Solver::update(float dt)
 }
 
 Solver::Solver()
-    : m_gravity{0.f, 1000.f},
-      m_iterations{4}
+    : m_gravity{0.f, 10000.f},
+      m_iterations{8}
 {
 }
 
