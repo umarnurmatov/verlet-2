@@ -41,12 +41,6 @@ int main() {
                 solver.addRectangle(100.f, 100.f, mouse_pos.x, mouse_pos.y, 100.f, f); 
                 //f = !f;
             }
-
-            else if(event.type == event.MouseButtonPressed && event.mouseButton.button == sf::Mouse::Button::Right)
-            {
-                sf::Vector2f mouse_pos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-                solver.addVertex(mouse_pos.x, mouse_pos.y, 50.f); 
-            }
         }
 
         ImGui::SFML::Update(window, deltaClock.restart());

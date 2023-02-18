@@ -3,21 +3,13 @@
 #include <cmath>
 #include <iostream>
 
-Vertex::Vertex(float _x, float _y, float _mass, bool _fixed, float _radius)
+Vertex::Vertex(float _x, float _y, float _mass, bool _fixed)
     : position      {_x,  _y},
       prev_position {_x,  _y},
       acceleration  {0.f, 0.f},
       mass          {_mass},
-      radius        {_radius},
       fixed         {_fixed}
 {
-}
-
-std::pair<float, float> Vertex::ProjectToAxis(Vector2f &axis) const
-{
-    Vector2f v1 = axis * radius;
-    Vector2f v2 = -v1;
-    return std::make_pair<float, float>(axis.dot(v1), axis.dot(v2));
 }
 
 void Vertex::updateVerlet(float &dt)
@@ -141,9 +133,6 @@ int Solver::sgn(T x)
 
 void Solver::updateVerlet(float dt)
 {
-    for(auto& v : m_vertexes)
-        v.updateVerlet(dt);
-
     for(auto& b : m_bodies)
         for(auto& v : b.vertexes)
             v.updateVerlet(dt);
@@ -152,9 +141,6 @@ void Solver::updateVerlet(float dt)
 
 void Solver::updateEdges()
 {
-    for(auto& e : m_edges)
-        e.update();
-
     for(auto& b : m_bodies)
         for(auto& e : b.edges)
             e.update();
@@ -162,9 +148,6 @@ void Solver::updateEdges()
 
 void Solver::applyForces()
 {
-    for(auto& v : m_vertexes)
-        v.applyForce(m_gravity);
-
     for(auto& b : m_bodies)
         for(auto& v : b.vertexes)
             v.applyForce(m_gravity);
@@ -172,15 +155,10 @@ void Solver::applyForces()
 
 void Solver::applyConstrain()
 {
-    for(auto& v : m_vertexes) {
-        v.position.x = std::max( std::min( v.position.x, (float)GWidth  ), 0.0f );
-        v.position.y = std::max( std::min( v.position.y, (float)GHeight ), 0.0f );
-    }
-
     for(auto& body : m_bodies) {
         for(auto& v : body.vertexes) {
-            v.position.x = std::max( std::min( v.position.x + v.radius, (float)GWidth  ), 0.0f );
-            v.position.y = std::max( std::min( v.position.y + v.radius, (float)GHeight ), 0.0f );
+            v.position.x = std::max( std::min( v.position.x, (float)GWidth  ), 0.0f );
+            v.position.y = std::max( std::min( v.position.y, (float)GHeight ), 0.0f );
         }
     }
 }
@@ -329,21 +307,6 @@ void Solver::addRectangle(float w, float h, float x, float y, float mass, bool f
     ConvexPolygon* body = &m_bodies[m_bodies.size() - 1];
 
     body->makeRectangle(w, h, x, y, mass, fixed);
-}
-
-void Solver::addVertex(float x, float y, float radius)
-{
-    m_vertexes.push_back(Vertex(x, y, 1.f, false, radius));
-}
-
-std::vector<Vertex> &Solver::getVertexes()
-{
-    return m_vertexes;
-}
-
-std::vector<Edge> &Solver::getEdges()
-{
-    return m_edges;
 }
 
 std::vector<ConvexPolygon> &Solver::getPolygons()

@@ -16,14 +16,10 @@ struct Vertex
     Vector2f acceleration;
     Vector2f prev_position;
     float    mass;
-    float    radius;
     bool     fixed;
     
 
-    Vertex(float _x, float _y, float _mass, bool _fixed = false, float _radius = 0.f);
-
-    // axis NEED to be normalized
-    std::pair<float, float> ProjectToAxis(Vector2f &axis) const;
+    Vertex(float _x, float _y, float _mass, bool _fixed = false);
 
     void updateVerlet(float &dt);
     void applyForce(Vector2f &force);
@@ -64,8 +60,6 @@ struct ConvexPolygon
 
 class Solver
 {
-    std::vector<Vertex>        m_vertexes;
-    std::vector<Edge>          m_edges;
     std::vector<ConvexPolygon> m_bodies;
     size_t                     m_iterations;
     Vector2f                   m_gravity;
@@ -93,7 +87,6 @@ class Solver
     void applyForces();
     void applyConstrain();
     bool detectCollision(ConvexPolygon *b1, ConvexPolygon *b2);
-    bool detectCollision(ConvexPolygon *b, Vertex *v);
     void resolveCollision();
     void iterateCollisions();
     
@@ -101,9 +94,6 @@ public:
     Solver();
     void update(float dt);
     void addRectangle(float w, float h, float x, float y, float mass, bool fixed = false);
-    void addVertex(float x, float y, float radius);
-    std::vector<Vertex>&        getVertexes();
-    std::vector<Edge>&          getEdges();
     std::vector<ConvexPolygon>& getPolygons();
 };
 
