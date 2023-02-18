@@ -3,12 +3,35 @@
 #include <cmath>
 #include <iostream>
 
-Vertex::Vertex(float _x, float _y, float _mass)
-    : position{_x, _y},
-      prev_position{_x, _y},
-      acceleration{0.f, 0.f},
-      mass{_mass}
+Vertex::Vertex(float _x, float _y, float _mass, bool _fixed, float _radius)
+    : position      {_x,  _y},
+      prev_position {_x,  _y},
+      acceleration  {0.f, 0.f},
+      mass          {_mass},
+      radius        {_radius},
+      fixed         {_fixed}
 {
+}
+
+std::pair<float, float> Vertex::ProjectToAxis(Vector2f &axis) const
+{
+    Vector2f v1 = axis * radius;
+    Vector2f v2 = -v1;
+    return std::make_pair<float, float>(axis.dot(v1), axis.dot(v2));
+}
+
+void Vertex::updateVerlet(float &dt)
+{
+    // Verlet integration
+    if(fixed) return;
+    Vector2f temp = position;
+    position += position - prev_position + acceleration * dt * dt;
+    prev_position = temp;
+}
+
+void Vertex::applyForce(Vector2f &force)
+{
+    acceleration = force / mass;
 }
 
 float Vertex::distance(Vertex *v2)
@@ -16,7 +39,18 @@ float Vertex::distance(Vertex *v2)
     return sqrt(pow(position.x - v2->position.x, 2) + pow(position.y - v2->position.y, 2));
 }
 
-Edge::Edge(Vertex* _v1, Vertex* _v2, float _length, PhysicsBody* _parent)
+void Edge::update()
+{
+    Vector2f v1v2 = v2->position - v1->position;
+    float diff = v1v2.length() - length;
+    v1v2 = v1v2.normalized();
+
+    // push vertices apart by half of diff
+    v1->position += v1v2 * diff * 0.5f;
+    v2->position -= v1v2 * diff * 0.5f;
+}
+
+Edge::Edge(Vertex *_v1, Vertex *_v2, float _length, ConvexPolygon *_parent)
     : v1{_v1},
       v2{_v2},
       length{_length},
@@ -24,7 +58,7 @@ Edge::Edge(Vertex* _v1, Vertex* _v2, float _length, PhysicsBody* _parent)
 {
 }
 
-std::pair<int, int> PhysicsBody::ProjectToAxis(Vector2f &axis) const
+std::pair<float, float> ConvexPolygon::ProjectToAxis(Vector2f &axis) const
 {
     float min, max;
     float dot = axis.dot(vertexes[0].position);
@@ -40,7 +74,7 @@ std::pair<int, int> PhysicsBody::ProjectToAxis(Vector2f &axis) const
     return std::make_pair(min, max);
 }
 
-void PhysicsBody::calculateMassCenter_andBoundingBox()
+void ConvexPolygon::calculateMassCenter_andBoundingBox()
 {
     center = Vector2f(0.f, 0.f);
     mass = 0.f;
@@ -69,9 +103,26 @@ bool operator==(const Vertex &v1, const Vertex &v2)
     return (v1.position == v2.position) && (v1.prev_position == v2.prev_position);
 }
 
-bool PhysicsBody::operator==(PhysicsBody &b)
+bool ConvexPolygon::operator==(ConvexPolygon &b)
 {
     return vertexes == b.vertexes;
+}
+
+void ConvexPolygon::makeRectangle(float w, float h, float x, float y, float mass, bool fixed)
+{
+    float v_mass = mass / 4.f;
+    vertexes.push_back(Vertex(x,     y,     v_mass, fixed));
+    vertexes.push_back(Vertex(x + w, y,     v_mass, fixed));
+    vertexes.push_back(Vertex(x,     y + h, v_mass, fixed));
+    vertexes.push_back(Vertex(x + w, y + h, v_mass, fixed));
+
+    std::vector<Vertex*> v;
+    for(size_t i = 4; i > 0; i--)
+        v.push_back(&vertexes[vertexes.size() - i]);
+        
+    for(size_t i = 0; i < 4; i++)
+        for(size_t j = i + 1; j < 4; j++)
+            edges.push_back(Edge(v[i], v[j], v[i]->distance(v[j]), this));
 }
 
 float Solver::intervalDistance(float minA, float maxA, float minB, float maxB)
@@ -90,57 +141,69 @@ int Solver::sgn(T x)
 
 void Solver::updateVerlet(float dt)
 {
-    for(Vertex* v : m_vertexes)
-    {
-        // Verlet integration
-        Vector2f temp = v->position;
-        v->position += v->position - v->prev_position + v->acceleration * dt * dt;
-        v->prev_position = temp;
-    }
+    for(auto& v : m_vertexes)
+        v.updateVerlet(dt);
+
+    for(auto& b : m_bodies)
+        for(auto& v : b.vertexes)
+            v.updateVerlet(dt);
 
 }
 
 void Solver::updateEdges()
 {
-    for(Edge* edge : m_edges)
-    {
-        Vector2f v1v2 = edge->v2->position - edge->v1->position;
-        float diff = v1v2.length() - edge->length;
-        v1v2 = v1v2.normalized();
+    for(auto& e : m_edges)
+        e.update();
 
-        // push vertices apart by half of diff
-        edge->v1->position += v1v2 * diff * 0.5f;
-        edge->v2->position -= v1v2 * diff * 0.5f;
-    }
+    for(auto& b : m_bodies)
+        for(auto& e : b.edges)
+            e.update();
 }
 
 void Solver::applyForces()
 {
-    for(Vertex* v : m_vertexes)
-    {
-        v->acceleration = m_gravity;
+    for(auto& v : m_vertexes)
+        v.applyForce(m_gravity);
+
+    for(auto& b : m_bodies)
+        for(auto& v : b.vertexes)
+            v.applyForce(m_gravity);
+}
+
+void Solver::applyConstrain()
+{
+    for(auto& v : m_vertexes) {
+        v.position.x = std::max( std::min( v.position.x, (float)GWidth  ), 0.0f );
+        v.position.y = std::max( std::min( v.position.y, (float)GHeight ), 0.0f );
+    }
+
+    for(auto& body : m_bodies) {
+        for(auto& v : body.vertexes) {
+            v.position.x = std::max( std::min( v.position.x + v.radius, (float)GWidth  ), 0.0f );
+            v.position.y = std::max( std::min( v.position.y + v.radius, (float)GHeight ), 0.0f );
+        }
     }
 }
 
 // Separate axis theorem
-bool Solver::detectCollision(PhysicsBody &b1, PhysicsBody &b2)
+bool Solver::detectCollision(ConvexPolygon *b1, ConvexPolygon *b2)
 {
     float minDistance = std::numeric_limits<float>::max();  // init length of collision vector (relatively large value) 
-    for(size_t i = 0; i < b1.edges.size() + b2.edges.size(); i++)
+    for(size_t i = 0; i < b1->edges.size() + b2->edges.size(); i++)
     {
         // choose the edge
         Edge* e;
-        if(i < b1.edges.size()) 
-            e = &b1.edges[i];
+        if(i < b1->edges.size()) 
+            e = &b1->edges[i];
         else
-            e = &b2.edges[i - b1.edges.size()];
+            e = &b2->edges[i - b1->edges.size()];
 
         // axis perpendicular to the edge and normalized
         Vector2f axis = e->v2->position - e->v1->position;
         axis = axis.perpendicular().normalized();
 
-        auto [minA, maxA] = b1.ProjectToAxis(axis);
-        auto [minB, maxB] = b2.ProjectToAxis(axis);
+        auto [minA, maxA] = b1->ProjectToAxis(axis);
+        auto [minB, maxB] = b2->ProjectToAxis(axis);
 
         float distance = intervalDistance(minA, maxA, minB, maxB);
 
@@ -162,21 +225,23 @@ bool Solver::detectCollision(PhysicsBody &b1, PhysicsBody &b2)
     // the next thing is to identify which vertex (and how) participates in collision
     // and separate it from others
 
-    if(*m_collisionInfo.e->parent != b2)
+    if(*m_collisionInfo.e->parent != *b2)
     {
-        PhysicsBody& temp = b2;
+        ConvexPolygon* temp = b2;
+        b2 = b1;
+        b1 = temp;
     }
 
-    int sign = sgn(m_collisionInfo.normal.dot(b1.center - b2.center));
+    int sign = sgn(m_collisionInfo.normal.dot(b1->center - b2->center));
 
     // ensure that collision normal points to b1
     if(sign != 1)
         m_collisionInfo.normal = -m_collisionInfo.normal;
     
     float smallestDist = std::numeric_limits<float>::max();
-    for(auto& v : b1.vertexes)
+    for(auto& v : b1->vertexes)
     {
-        float distance = m_collisionInfo.normal.dot(v.position - b2.center);
+        float distance = m_collisionInfo.normal.dot(v.position - b2->center);
         if(distance < smallestDist)
         {
             smallestDist = distance;
@@ -201,10 +266,15 @@ void Solver::resolveCollision()
     
     float lambda = 1.0f / (T*T + (1 - T)*(1 - T));
 
-    v1->position -= 0.5f * collisionVector * (1 - T) * lambda;
-    v2->position -= 0.5f * collisionVector * T       * lambda;
 
-    m_collisionInfo.v->position += collisionVector * 0.5f;
+    // TODO понять что за хрень происходит
+    if(!v1->fixed)
+        v1->position -= 0.5f * collisionVector * (1 - T) * lambda;
+    if(!v2->fixed)
+        v2->position -= 0.5f * collisionVector *  T      * lambda;
+
+    if(!m_collisionInfo.v->fixed)
+        m_collisionInfo.v->position += collisionVector * 0.5f;
 
 }
 
@@ -212,11 +282,8 @@ void Solver::iterateCollisions()
 {
     //A small 'hack' that keeps the vertices inside the screen. You could of course implement static objects and create
     //four to serve as screen boundaries, but the max/min method is faster
-    for(Vertex* v : m_vertexes) {
-        v->position.x = std::max( std::min( v->position.x, (float)GWidth  ), 0.0f );
-        v->position.y = std::max( std::min( v->position.y, (float)GHeight ), 0.0f );
-    }
-
+    applyConstrain();
+    
     updateEdges();
 
     for(auto& body : m_bodies)
@@ -230,7 +297,7 @@ void Solver::iterateCollisions()
         {
             if(b1 != b2)
                 if(b1.boundBox.findIntersection(b2.boundBox) != std::nullopt)
-                    if(detectCollision(b1, b2))
+                    if(detectCollision(&b1, &b2))
                         resolveCollision();
                     
         }
@@ -241,65 +308,45 @@ void Solver::update(float dt)
 {
     
     float sub_dt = dt / m_iterations;
+    applyForces();
     for(size_t i = 0; i < m_iterations; i++)
     {
-        applyForces();
         updateVerlet(sub_dt);
         iterateCollisions();
     }
 }
 
 Solver::Solver()
-    : m_gravity{0.f, 10000.f},
+    : m_gravity{0.f, 1000.f},
       m_iterations{8}
 {
 }
 
-void Solver::addRectangle(float w, float h, float x, float y)
+void Solver::addRectangle(float w, float h, float x, float y, float mass, bool fixed)
 {
-    float mass = 1.f;
+    m_bodies.push_back(ConvexPolygon());
 
-    m_bodies.push_back(PhysicsBody());
+    ConvexPolygon* body = &m_bodies[m_bodies.size() - 1];
 
-    PhysicsBody* body = &m_bodies[m_bodies.size() - 1];
-
-    body->vertexes.push_back(Vertex(x, y, mass));
-    body->vertexes.push_back(Vertex(x + w, y, mass));
-    body->vertexes.push_back(Vertex(x, y + h, mass));
-    body->vertexes.push_back(Vertex(x + w, y + h, mass));
-
-    size_t s = body->vertexes.size();
-    Vertex* v1 = &body->vertexes[s - 4];
-    Vertex* v2 = &body->vertexes[s - 3];
-    Vertex* v3 = &body->vertexes[s - 2];
-    Vertex* v4 = &body->vertexes[s - 1];
-
-    body->edges.push_back(Edge(v1, v2, v1->distance(v2), body));
-    body->edges.push_back(Edge(v2, v3, v2->distance(v3), body));
-    body->edges.push_back(Edge(v3, v4, v3->distance(v4), body));
-    body->edges.push_back(Edge(v4, v1, v4->distance(v1), body));
-    body->edges.push_back(Edge(v1, v3, v1->distance(v3), body));
-    body->edges.push_back(Edge(v2, v4, v2->distance(v4), body));
-
-    for(size_t i = 4; i >= 1; i--)
-    {
-        m_vertexes.push_back(&body->vertexes[s - i]);    
-    }
-
-    s = body->edges.size();
-    for(size_t i = 6; i >= 1; i--)
-    {
-        m_edges.push_back(&body->edges[s - i]);
-    }
-    
+    body->makeRectangle(w, h, x, y, mass, fixed);
 }
 
-std::vector<Vertex*> &Solver::getVertexes()
+void Solver::addVertex(float x, float y, float radius)
+{
+    m_vertexes.push_back(Vertex(x, y, 1.f, false, radius));
+}
+
+std::vector<Vertex> &Solver::getVertexes()
 {
     return m_vertexes;
 }
 
-std::vector<Edge*> &Solver::getEdges()
+std::vector<Edge> &Solver::getEdges()
 {
     return m_edges;
+}
+
+std::vector<ConvexPolygon> &Solver::getPolygons()
+{
+    return m_bodies;
 }

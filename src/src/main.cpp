@@ -26,6 +26,7 @@ int main() {
 
     sf::Clock deltaClock;
     sf::Clock solverClock;
+    bool f = false;
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -37,7 +38,14 @@ int main() {
             if(event.type == event.MouseButtonPressed && event.mouseButton.button == sf::Mouse::Button::Left)
             {
                 sf::Vector2f mouse_pos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-                solver.addRectangle(100.f, 100.f, mouse_pos.x, mouse_pos.y); 
+                solver.addRectangle(100.f, 100.f, mouse_pos.x, mouse_pos.y, 100.f, f); 
+                //f = !f;
+            }
+
+            else if(event.type == event.MouseButtonPressed && event.mouseButton.button == sf::Mouse::Button::Right)
+            {
+                sf::Vector2f mouse_pos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+                solver.addVertex(mouse_pos.x, mouse_pos.y, 50.f); 
             }
         }
 

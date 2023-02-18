@@ -8,30 +8,43 @@ using sf::Vector2f;
 
 struct Vertex;
 struct Edge;
-struct PhysicsBody;
+struct ConvexPolygon;
 
 struct Vertex
 {
     Vector2f position;
     Vector2f acceleration;
     Vector2f prev_position;
-    float mass;
+    float    mass;
+    float    radius;
+    bool     fixed;
+    
 
-    Vertex(float _x, float _y, float _mass);
+    Vertex(float _x, float _y, float _mass, bool _fixed = false, float _radius = 0.f);
+
+    // axis NEED to be normalized
+    std::pair<float, float> ProjectToAxis(Vector2f &axis) const;
+
+    void updateVerlet(float &dt);
+    void applyForce(Vector2f &force);
     float distance(Vertex *v2);
 };
 
 struct Edge
 {
     Vertex *v1, *v2;
-    float length;
+    float  length;
 
-    PhysicsBody* parent;
-public:
-    Edge(Vertex* _v1, Vertex* _v2, float _length, PhysicsBody* _parent);
+    ConvexPolygon* parent;
+
+    void update();
+
+    Edge(Vertex* _v1, Vertex* _v2, float _length, ConvexPolygon* _parent = nullptr);
 };
 
-struct PhysicsBody
+
+// Consists of several Vertexes (they are acting like points) and edges between them
+struct ConvexPolygon
 {
     Vector2f center; // center of mass
     float mass;
@@ -40,28 +53,32 @@ struct PhysicsBody
     std::vector<Vertex> vertexes;
     std::vector<Edge> edges;
 
-    std::pair<int, int> ProjectToAxis(Vector2f &axis) const;
+    // axis NEED to be normalized
+    std::pair<float, float> ProjectToAxis(Vector2f &axis) const;
     void calculateMassCenter_andBoundingBox();
 
-    bool operator==(PhysicsBody &b);
+    bool operator==(ConvexPolygon &b);
+
+    void makeRectangle(float w, float h, float x, float y, float mass, bool fixed);
 };
 
 class Solver
 {
-    std::vector<Vertex*> m_vertexes;
-    std::vector<Edge*> m_edges;
-    std::vector<PhysicsBody> m_bodies;
-    size_t m_iterations;
-    Vector2f m_gravity;
+    std::vector<Vertex>        m_vertexes;
+    std::vector<Edge>          m_edges;
+    std::vector<ConvexPolygon> m_bodies;
+    size_t                     m_iterations;
+    Vector2f                   m_gravity;
 
     // TODO fix this
     int GWidth = 1920, GHeight = 600;
 
-    struct {
-        float depth;
-        Vector2f normal; 
-        Edge* e; // collision edge
-        Vertex* v;
+    struct 
+    {
+        float    depth;
+        Vector2f normal; // depth * normal = collisionVector
+        Edge*    e;      // collision edge
+        Vertex*  v;      // collision vertex
     } m_collisionInfo;
 
     // distance between two intervals
@@ -74,16 +91,20 @@ class Solver
     void updateVerlet(float dt);
     void updateEdges();
     void applyForces();
-    bool detectCollision(PhysicsBody &b1, PhysicsBody &b2);
+    void applyConstrain();
+    bool detectCollision(ConvexPolygon *b1, ConvexPolygon *b2);
+    bool detectCollision(ConvexPolygon *b, Vertex *v);
     void resolveCollision();
     void iterateCollisions();
     
 public:
     Solver();
     void update(float dt);
-    void addRectangle(float w, float h, float x, float y);
-    std::vector<Vertex*>& getVertexes();
-    std::vector<Edge*>& getEdges();
+    void addRectangle(float w, float h, float x, float y, float mass, bool fixed = false);
+    void addVertex(float x, float y, float radius);
+    std::vector<Vertex>&        getVertexes();
+    std::vector<Edge>&          getEdges();
+    std::vector<ConvexPolygon>& getPolygons();
 };
 
 
