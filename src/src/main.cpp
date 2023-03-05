@@ -38,8 +38,8 @@ int main() {
             if(event.type == event.MouseButtonPressed && event.mouseButton.button == sf::Mouse::Button::Left)
             {
                 sf::Vector2f mouse_pos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-                solver.addRectangle(100.f, 100.f, mouse_pos.x, mouse_pos.y, 100.f, f); 
-                //f = !f;
+                solver.addRectangle(f ? 100.f : 200.f, f ? 200.f : 100.f, mouse_pos.x, mouse_pos.y, 100.f, false); 
+                f = !f;
             }
         }
 

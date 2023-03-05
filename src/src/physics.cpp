@@ -53,12 +53,12 @@ Edge::Edge(Vertex *_v1, Vertex *_v2, float _length, ConvexPolygon *_parent)
 std::pair<float, float> ConvexPolygon::ProjectToAxis(Vector2f &axis) const
 {
     float min, max;
-    float dot = axis.dot(vertexes[0].position);
+    float dot = axis.dot((*vertexes.begin()).position);
     min = max = dot;
 
-    for(size_t i = 1; i < vertexes.size(); i++)
+    for(auto& vertex : vertexes)
     {
-        dot = axis.dot(vertexes[i].position);
+        dot = axis.dot(vertex.position);
         min = std::min(min, dot);
         max = std::max(max, dot);
     }
@@ -109,12 +109,18 @@ void ConvexPolygon::makeRectangle(float w, float h, float x, float y, float mass
     vertexes.push_back(Vertex(x + w, y + h, v_mass, fixed));
 
     std::vector<Vertex*> v;
-    for(size_t i = 4; i > 0; i--)
-        v.push_back(&vertexes[vertexes.size() - i]);
+    for(auto& vertex : vertexes)
+    {
+        v.push_back(&vertex);
+    }
         
     for(size_t i = 0; i < 4; i++)
         for(size_t j = i + 1; j < 4; j++)
             edges.push_back(Edge(v[i], v[j], v[i]->distance(v[j]), this));
+}
+
+void ConvexPolygon::makeTriangle(float a, float x, float y, float mass, bool fixed)
+{
 }
 
 float Solver::intervalDistance(float minA, float maxA, float minB, float maxB)

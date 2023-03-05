@@ -4,6 +4,7 @@
 #include <SFML/System.hpp>
 #include <SFML/Graphics/Rect.hpp>
 #include <vector>
+#include <list>
 using sf::Vector2f;
 
 struct Vertex;
@@ -46,7 +47,7 @@ struct ConvexPolygon
     float mass;
     sf::FloatRect boundBox;
 
-    std::vector<Vertex> vertexes;
+    std::list<Vertex> vertexes;
     std::vector<Edge> edges;
 
     // axis NEED to be normalized
@@ -56,6 +57,7 @@ struct ConvexPolygon
     bool operator==(ConvexPolygon &b);
 
     void makeRectangle(float w, float h, float x, float y, float mass, bool fixed);
+    void makeTriangle(float a, float x, float y, float mass, bool fixed);
 };
 
 class Solver
