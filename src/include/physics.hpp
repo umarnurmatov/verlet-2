@@ -97,7 +97,7 @@ public:
     Solver();
     void update(float dt);
     void addRectangle(float w, float h, float x, float y, float mass, bool fixed = false);
-    void makeTriangle(float a, float x, float y, float mass, bool fixed);
+    void addTriangle(float a, float x, float y, float mass, bool fixed);
 
     std::vector<ConvexPolygon>& getPolygons();
 };
