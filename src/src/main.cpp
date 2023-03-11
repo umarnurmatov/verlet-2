@@ -8,6 +8,16 @@
 
 using namespace std;
 
+std::vector<float> fps;
+std::vector<float> timep;
+
+void graphics()
+{
+    
+    
+
+}
+
 int main() {
     sf::ContextSettings settings;
     settings.antialiasingLevel = 4;
@@ -26,7 +36,8 @@ int main() {
 
     sf::Clock deltaClock;
     sf::Clock solverClock;
-    bool f = false;
+    sf::Clock fpsClock;
+    float current_fps;
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
@@ -38,8 +49,8 @@ int main() {
             if(event.type == event.MouseButtonPressed && event.mouseButton.button == sf::Mouse::Button::Left)
             {
                 sf::Vector2f mouse_pos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-                solver.addRectangle(f ? 100.f : 200.f, f ? 200.f : 100.f, mouse_pos.x, mouse_pos.y, 100.f, false); 
-                f = !f;
+                //solver.addRectangle(100.f, 100.f, mouse_pos.x, mouse_pos.y, 100.f, false); 
+                solver.addTriangle(100.f, mouse_pos.x, mouse_pos.y, 100.f, false);
             }
         }
 
@@ -48,10 +59,26 @@ int main() {
 
         solver.update(solverClock.restart().asSeconds());
 
+        ImGui::Text(std::to_string(current_fps).c_str());
+        ImGui::PlotLines("FPS", fps.data(), fps.size());
+        ImGui::Text((std::string("Body count: ") + std::to_string(solver.getPolygons().size())).c_str());
+        ImGui::ShowDemoWindow();
+
         window.clear();
         renderer.render(solver);
         ImGui::SFML::Render(window);
         window.display();
+
+        current_fps = 1.f / fpsClock.restart().asSeconds();
+
+        if(fps.size() < 300)
+
+            fps.push_back(current_fps);
+        else
+        {
+            fps.erase(fps.begin());
+            fps.push_back(current_fps);
+        }
     }
 
     ImGui::SFML::Shutdown();

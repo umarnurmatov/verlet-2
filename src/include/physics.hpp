@@ -31,12 +31,13 @@ struct Edge
 {
     Vertex *v1, *v2;
     float  length;
+    bool noCollision;
 
     ConvexPolygon* parent;
 
     void update();
 
-    Edge(Vertex* _v1, Vertex* _v2, float _length, ConvexPolygon* _parent = nullptr);
+    Edge(Vertex* _v1, Vertex* _v2, float _length, ConvexPolygon* _parent, bool _noCollision);
 };
 
 
@@ -96,6 +97,8 @@ public:
     Solver();
     void update(float dt);
     void addRectangle(float w, float h, float x, float y, float mass, bool fixed = false);
+    void makeTriangle(float a, float x, float y, float mass, bool fixed);
+
     std::vector<ConvexPolygon>& getPolygons();
 };
 

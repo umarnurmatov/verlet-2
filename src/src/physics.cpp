@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <thread>
 
 Vertex::Vertex(float _x, float _y, float _mass, bool _fixed)
     : position      {_x,  _y},
@@ -42,11 +43,13 @@ void Edge::update()
     v2->position -= v1v2 * diff * 0.5f;
 }
 
-Edge::Edge(Vertex *_v1, Vertex *_v2, float _length, ConvexPolygon *_parent)
+
+Edge::Edge(Vertex* _v1, Vertex* _v2, float _length, ConvexPolygon* _parent, bool _noCollision)
     : v1{_v1},
       v2{_v2},
       length{_length},
-      parent{_parent}
+      parent{_parent},
+      noCollision{_noCollision}
 {
 }
 
@@ -103,24 +106,32 @@ bool ConvexPolygon::operator==(ConvexPolygon &b)
 void ConvexPolygon::makeRectangle(float w, float h, float x, float y, float mass, bool fixed)
 {
     float v_mass = mass / 4.f;
-    vertexes.push_back(Vertex(x,     y,     v_mass, fixed));
-    vertexes.push_back(Vertex(x + w, y,     v_mass, fixed));
-    vertexes.push_back(Vertex(x,     y + h, v_mass, fixed));
-    vertexes.push_back(Vertex(x + w, y + h, v_mass, fixed));
-
-    std::vector<Vertex*> v;
-    for(auto& vertex : vertexes)
-    {
-        v.push_back(&vertex);
-    }
+    auto v1 = &vertexes.emplace_back(Vertex(x,     y,     v_mass, fixed));
+    auto v2 = &vertexes.emplace_back(Vertex(x + w, y,     v_mass, fixed));
+    auto v3 = &vertexes.emplace_back(Vertex(x,     y + h, v_mass, fixed));
+    auto v4 = &vertexes.emplace_back(Vertex(x + w, y + h, v_mass, fixed));
         
-    for(size_t i = 0; i < 4; i++)
-        for(size_t j = i + 1; j < 4; j++)
-            edges.push_back(Edge(v[i], v[j], v[i]->distance(v[j]), this));
+    edges.push_back(Edge(v1, v2, v1->distance(v2), this, false));
+    edges.push_back(Edge(v2, v4, v2->distance(v4), this, false));
+    edges.push_back(Edge(v3, v4, v3->distance(v4), this, false));
+    edges.push_back(Edge(v1, v3, v1->distance(v3), this, false));
+    edges.push_back(Edge(v1, v4, v1->distance(v4), this, true));
+    edges.push_back(Edge(v2, v3, v2->distance(v3), this, true));
 }
 
 void ConvexPolygon::makeTriangle(float a, float x, float y, float mass, bool fixed)
 {
+    static float x1 = a * cos(M_PI / 6.f);
+    static float x2 = a * sin(M_PI / 6.f);
+    float v_mass = mass / 3.f;
+
+    auto v1 = &vertexes.emplace_back(Vertex(x + x2,  y,      v_mass, fixed));
+    auto v2 = &vertexes.emplace_back(Vertex(x + a,   y + x1, v_mass, fixed));
+    auto v3 = &vertexes.emplace_back(Vertex(x,       y + x1, v_mass, fixed));
+
+    edges.push_back(Edge(v1, v2, v1->distance(v2), this, false));
+    edges.push_back(Edge(v2, v3, v2->distance(v3), this, false));
+    edges.push_back(Edge(v1, v3, v1->distance(v3), this, false));
 }
 
 float Solver::intervalDistance(float minA, float maxA, float minB, float maxB)
@@ -181,6 +192,8 @@ bool Solver::detectCollision(ConvexPolygon *b1, ConvexPolygon *b2)
             e = &b1->edges[i];
         else
             e = &b2->edges[i - b1->edges.size()];
+
+        if(e->noCollision) continue;
 
         // axis perpendicular to the edge and normalized
         Vector2f axis = e->v2->position - e->v1->position;
@@ -275,6 +288,8 @@ void Solver::iterateCollisions()
         body.calculateMassCenter_andBoundingBox();
     }
 
+    
+
     for(auto& b1 : m_bodies)
     {
         for(auto& b2 : m_bodies)
@@ -315,7 +330,18 @@ void Solver::addRectangle(float w, float h, float x, float y, float mass, bool f
     body->makeRectangle(w, h, x, y, mass, fixed);
 }
 
+void Solver::addTriangle(float a, float x, float y, float mass, bool fixed)
+{
+    m_bodies.push_back(ConvexPolygon());
+
+    ConvexPolygon* body = &m_bodies[m_bodies.size() - 1];
+
+    body->makeTriangle(a, x, y, mass, fixed);
+}
+
+
 std::vector<ConvexPolygon> &Solver::getPolygons()
 {
     return m_bodies;
 }
+
