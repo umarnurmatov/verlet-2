@@ -134,6 +134,45 @@ void ConvexPolygon::makeTriangle(float a, float x, float y, float mass, bool fix
     edges.push_back(Edge(v1, v3, v1->distance(v3), this, false));
 }
 
+/// @param resolution must be even - number of vertexes in circle
+void ConvexPolygon::makeCircle(float r, float x, float y, unsigned int resolution, float mass, bool fixed)
+{
+    float v_mass = mass / static_cast<float>(resolution);
+    unsigned int res = static_cast<unsigned int>(resolution / 2);
+    float da = 2.f * M_PI / static_cast<float>(resolution);
+    float a = 0.f;
+    
+    Vector2f vv0(x, y);
+    Vector2f vv1, vv2;
+    Vertex* prev_v1 = nullptr, *prev_v2 = nullptr;
+    for(size_t i = 0; i < res; i++)
+    {
+        vv1.x = cos(a); vv1.y = sin(a);
+        vv1 = vv1 * r;
+        vv2 = - vv1;
+        vv1 += vv0;
+        vv2 += vv0;
+        auto v1 = &vertexes.emplace_back(Vertex(vv1.x, vv1.y, v_mass, fixed));
+        auto v2 = &vertexes.emplace_back(Vertex(vv2.x, vv2.y, v_mass, fixed));
+        edges.push_back(Edge(v1, v2, 2 * r, this, true));
+        if(prev_v1) edges.push_back(Edge(v1, prev_v1, v1->distance(prev_v1), this, false));
+        if(prev_v2) edges.push_back(Edge(v2, prev_v2, v2->distance(prev_v2), this, false));
+        prev_v1 = v1; prev_v2 = v2;
+        a += da;
+    }
+
+    auto vbegin = vertexes.begin();
+    auto vend = --vertexes.end(); 
+
+    auto* start1 = &(*(  vbegin ));
+    auto* start2 = &(*(++vbegin ));
+    auto* end1 =   &(*(  vend   ));
+    auto* end2 =   &(*(--vend   ));
+
+    edges.push_back(Edge(start1, end1, start1->distance(end1), this, false));
+    edges.push_back(Edge(start2, end2, start2->distance(end2), this, false));
+}
+
 float Solver::intervalDistance(float minA, float maxA, float minB, float maxB)
 {
     if(minA < minB)
@@ -308,8 +347,14 @@ void Solver::update(float dt)
     
     float sub_dt = dt / m_iterations;
     applyForces();
+    
     for(size_t i = 0; i < m_iterations; i++)
     {
+        // std::thread t1(&Solver::updateVerlet, this, sub_dt);
+        // std::thread t2(&Solver::iterateCollisions, this);
+        // t1.join();
+        // t2.join();
+
         updateVerlet(sub_dt);
         iterateCollisions();
     }
@@ -339,6 +384,14 @@ void Solver::addTriangle(float a, float x, float y, float mass, bool fixed)
     body->makeTriangle(a, x, y, mass, fixed);
 }
 
+void Solver::addCircle(float r, float x, float y, unsigned int resolution, float mass, bool fixed)
+{
+    m_bodies.push_back(ConvexPolygon());
+
+    ConvexPolygon* body = &m_bodies[m_bodies.size() - 1];
+
+    body->makeCircle(r, x, y, resolution, mass, fixed);
+}
 
 std::vector<ConvexPolygon> &Solver::getPolygons()
 {

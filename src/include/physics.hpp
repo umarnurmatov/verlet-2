@@ -31,7 +31,7 @@ struct Edge
 {
     Vertex *v1, *v2;
     float  length;
-    bool noCollision;
+    bool   noCollision;
 
     ConvexPolygon* parent;
 
@@ -59,6 +59,7 @@ struct ConvexPolygon
 
     void makeRectangle(float w, float h, float x, float y, float mass, bool fixed);
     void makeTriangle(float a, float x, float y, float mass, bool fixed);
+    void makeCircle(float r, float x, float y, unsigned int resolution, float mass, bool fixed);
 };
 
 class Solver
@@ -98,6 +99,9 @@ public:
     void update(float dt);
     void addRectangle(float w, float h, float x, float y, float mass, bool fixed = false);
     void addTriangle(float a, float x, float y, float mass, bool fixed);
+    void addCircle(float r, float x, float y, unsigned int resolution, float mass, bool fixed);
+    void set_iteration_count(size_t iterations) { m_iterations = iterations; }
+
 
     std::vector<ConvexPolygon>& getPolygons();
 };
