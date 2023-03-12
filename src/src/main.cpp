@@ -34,6 +34,7 @@ int main() {
     sf::Clock fpsClock;
     float current_fps;
     int iterations = 8;
+    bool isSoft = false;
     
     while (window.isOpen()) {
         sf::Event event;
@@ -54,7 +55,7 @@ int main() {
             }
             else if(event.type == event.MouseButtonPressed && event.mouseButton.button == sf::Mouse::Button::Middle)
             {
-                solver.addCircle(100.f, mouse_pos.x, mouse_pos.y, 20, 100.f, false);
+                solver.addCircle(100.f, mouse_pos.x, mouse_pos.y, 20, 100.f, false, isSoft);
             }
         }
 
@@ -71,6 +72,15 @@ int main() {
         ImGui::Separator();
         ImGui::SliderInt("Physcis Iterations count", &iterations, 1, 16);
         solver.set_iteration_count(iterations);
+        ImGui::Separator();
+        
+        if(ImGui::Button("Soft circles or hard"))
+        {
+            isSoft = !isSoft;
+        }
+        ImGui::SameLine();
+        ImGui::Text(isSoft ? "Soft" : "Hard");
+        
 
         window.clear();
         renderer.render(solver);

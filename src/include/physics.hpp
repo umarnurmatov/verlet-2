@@ -59,7 +59,8 @@ struct ConvexPolygon
 
     void makeRectangle(float w, float h, float x, float y, float mass, bool fixed);
     void makeTriangle(float a, float x, float y, float mass, bool fixed);
-    void makeCircle(float r, float x, float y, unsigned int resolution, float mass, bool fixed);
+    void makeSoftCircle(float r, float x, float y, unsigned int resolution, float mass, bool fixed);
+    void makeHardCircle(float r, float x, float y, unsigned int resolution, float mass, bool fixed);
 };
 
 class Solver
@@ -99,7 +100,7 @@ public:
     void update(float dt);
     void addRectangle(float w, float h, float x, float y, float mass, bool fixed = false);
     void addTriangle(float a, float x, float y, float mass, bool fixed);
-    void addCircle(float r, float x, float y, unsigned int resolution, float mass, bool fixed);
+    void addCircle(float r, float x, float y, unsigned int resolution, float mass, bool fixed, bool isSoft);
     void set_iteration_count(size_t iterations) { m_iterations = iterations; }
 
 
