@@ -1,5 +1,5 @@
 #pragma once
-#include "physics.hpp"
+#include "solver.hpp"
 #include "SFML/Graphics.hpp"
 
 class Renderer

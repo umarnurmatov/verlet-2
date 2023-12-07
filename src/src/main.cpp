@@ -1,17 +1,15 @@
+#include <iostream>
+
 #include "imgui.h"
 #include "imgui-SFML.h"
-
 #include <SFML/Graphics.hpp>
-#include <iostream>
-#include "physics.hpp"
+
+#include "solver.hpp"
 #include "renderer.hpp"
 
 using namespace std;
 
 std::vector<float> fps;
-
-
-
 
 int main() {
     sf::ContextSettings settings;
@@ -47,11 +45,11 @@ int main() {
             sf::Vector2f mouse_pos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
             if(event.type == event.MouseButtonPressed && event.mouseButton.button == sf::Mouse::Button::Left)
             {
-                solver.addTriangle(100.f, mouse_pos.x, mouse_pos.y, 100.f, false);
+                solver.addTriangle(20.f, mouse_pos.x, mouse_pos.y, 100.f, false);
             }
             else if(event.type == event.MouseButtonPressed && event.mouseButton.button == sf::Mouse::Button::Right)
             {
-                solver.addRectangle(100.f, 100.f, mouse_pos.x, mouse_pos.y, 100.f, false); 
+                solver.addRectangle(20.f, 20.f, mouse_pos.x, mouse_pos.y, 100.f, false); 
             }
             else if(event.type == event.MouseButtonPressed && event.mouseButton.button == sf::Mouse::Button::Middle)
             {
