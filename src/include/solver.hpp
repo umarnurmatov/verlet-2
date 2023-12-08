@@ -13,6 +13,25 @@ using sf::Vector2f;
 
 class Solver
 {
+public:
+    Solver();
+    Solver(const Solver&) = delete;
+    Solver(Solver&&) = delete;
+
+    void update(float dt);
+    void addRectangle(float w, float h, float x, float y, float mass, bool fixed = false);
+    void addTriangle(float a, float x, float y, float mass, bool fixed);
+    void addCircle(float r, float x, float y, unsigned int resolution, float mass, bool fixed, bool isSoft);
+    void set_iteration_count(size_t iterations) { m_iterations = iterations; }
+
+
+    std::vector<ConvexPolygon>& getPolygons();
+
+    // TODO FIX THIS!!!
+    int getWidth() { return GWidth; }
+    int getHeight() { return GHeight; }
+
+private:
     std::vector<ConvexPolygon> m_bodies;
     size_t                     m_iterations;
     Vector2f                   m_gravity;
@@ -20,7 +39,7 @@ class Solver
     ThreadPool thread_pool;
 
     // TODO fix this
-    int GWidth = 1920, GHeight = 600;
+    int GWidth = 1920, GHeight = 1000;
 
     struct 
     {
@@ -45,14 +64,5 @@ class Solver
     void resolveCollision();
     void iterateCollisions();
     
-public:
-    Solver();
-    void update(float dt);
-    void addRectangle(float w, float h, float x, float y, float mass, bool fixed = false);
-    void addTriangle(float a, float x, float y, float mass, bool fixed);
-    void addCircle(float r, float x, float y, unsigned int resolution, float mass, bool fixed, bool isSoft);
-    void set_iteration_count(size_t iterations) { m_iterations = iterations; }
 
-
-    std::vector<ConvexPolygon>& getPolygons();
 };

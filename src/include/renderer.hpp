@@ -4,8 +4,13 @@
 
 class Renderer
 {
-    sf::RenderTarget *m_renderTarget;
 public:
     Renderer(sf::RenderTarget *rt);
+    Renderer(const Renderer&) = delete;
+    Renderer(Renderer&&) = delete;
+
     void render(Solver& solver);
+
+private:
+    sf::RenderTarget *m_renderTarget;
 };
