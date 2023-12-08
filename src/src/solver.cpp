@@ -1,7 +1,17 @@
-#include "solver.hpp"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+
+#include "constants.hpp"
+#include "solver.hpp"
+
+
+Solver::Solver()
+    : m_gravity{GRAVITY_VEC_X, GRAVITY_VEC_Y}
+    , m_iterations{START_ITERATIONS}
+    , m_thread_pool{SOLVER_THREADS}
+{
+}
 
 float Solver::intervalDistance(float minA, float maxA, float minB, float maxB)
 {
@@ -41,8 +51,10 @@ void Solver::applyForces()
 
 void Solver::applyConstrain()
 {
-    for(auto& body : m_bodies) {
-        for(auto& v : body.vertexes) {
+    for(auto& body : m_bodies) 
+    {
+        for(auto& v : body.vertexes) 
+        {
             v.position.x = std::max( std::min( v.position.x, (float)GWidth  ), 0.0f );
             v.position.y = std::max( std::min( v.position.y, (float)GHeight ), 0.0f );
         }
@@ -181,13 +193,6 @@ void Solver::update(float dt)
         updateVerlet(sub_dt);
         iterateCollisions();
     }
-}
-
-Solver::Solver()
-    : m_gravity{0.f, 1000.f}
-    , m_iterations{8}
-    , thread_pool{8}
-{
 }
 
 void Solver::addRectangle(float w, float h, float x, float y, float mass, bool fixed)

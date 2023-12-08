@@ -24,8 +24,7 @@ struct Vertex
     void updateVerlet(float &dt)
     {
         // Verlet integration
-        if (fixed)
-            return;
+        if (fixed) return;
         Vector2f temp = position;
         position += position - prev_position + acceleration * dt * dt;
         prev_position = temp;
@@ -38,6 +37,6 @@ struct Vertex
 
     float distance(Vertex *v2)
     {
-        return sqrt(pow(position.x - v2->position.x, 2) + pow(position.y - v2->position.y, 2));
+        return (position - v2->position).length();
     }
 };

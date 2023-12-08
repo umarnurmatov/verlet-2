@@ -36,7 +36,7 @@ private:
     size_t                     m_iterations;
     Vector2f                   m_gravity;
 
-    ThreadPool thread_pool;
+    ThreadPool m_thread_pool;
 
     // TODO fix this
     int GWidth = 1920, GHeight = 1000;
@@ -63,6 +63,5 @@ private:
     bool detectCollision(ConvexPolygon *b1, ConvexPolygon *b2);
     void resolveCollision();
     void iterateCollisions();
-    
 
 };
