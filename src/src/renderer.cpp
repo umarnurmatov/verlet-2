@@ -1,39 +1,38 @@
-#include "renderer.hpp"
 #include <iostream>
-using namespace std;
+
+#include "constants.hpp"
+#include "renderer.hpp"
 
 Renderer::Renderer(sf::RenderTarget *rt)
     : m_renderTarget{rt}
+    , m_line{sf::PrimitiveType::Lines, 2}
 {
+    m_circle.setPointCount(RENDERER_PRIMITIVE_CIRCLE_POINTS);
+    m_circle.setRadius(RENDERER_PRIMITIVE_CIRCLE_RADIUS);
+    m_circle.setOrigin(sf::Vector2f(RENDERER_PRIMITIVE_CIRCLE_RADIUS, RENDERER_PRIMITIVE_CIRCLE_RADIUS));
 }
 
 void Renderer::render(Solver &solver)
 {
-    sf::CircleShape circle;
-    circle.setPointCount(64);
     const auto& polygons = solver.getPolygons();
 
-    float radius = 5.f;
     for(const auto& polygon : polygons)
     {
-        for(const auto v : polygon.vertexes)
+        for(const auto& vert : polygon.vertexes)
         {
-            circle.setRadius(radius);
-            circle.setOrigin(sf::Vector2f(radius, radius));
-            circle.setPosition(v.position);
-            circle.setFillColor(sf::Color::White);
-            m_renderTarget->draw(circle);
+            m_circle.setPosition(vert.position);
+            m_circle.setFillColor(sf::Color::White);
+            m_renderTarget->draw(m_circle);
         }
     }
 
-    sf::VertexArray line(sf::PrimitiveType::Lines, 2);
     for(const auto& polygon : polygons)
     {
         for(const auto& edge : polygon.edges)
         {
-            line[0] = sf::Vertex(edge.v1->position);
-            line[1] = sf::Vertex(edge.v2->position);
-            m_renderTarget->draw(line);
+            m_line[0] = sf::Vertex(edge.v1->position);
+            m_line[1] = sf::Vertex(edge.v2->position);
+            m_renderTarget->draw(m_line);
         }
     }
 }

@@ -13,4 +13,6 @@ public:
 
 private:
     sf::RenderTarget *m_renderTarget;
+    sf::VertexArray m_line;
+    sf::CircleShape m_circle;
 };
